@@ -2,4 +2,9 @@ target/
 *.iml
 .idea/
 .DS_Store
+
 application-local.yml
+
+# nginx 运行时产物，不入库
+nginx/logs/
+
