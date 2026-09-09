@@ -88,13 +88,13 @@ public class EmployeeServiceImpl implements EmployeeService {
         employee.setPassword(DigestUtils.md5DigestAsHex(PasswordConstant.DEFAULT_PASSWORD.getBytes()));
 
         //times
-        employee.setCreateTime(LocalDateTime.now());
-        employee.setUpdateTime((LocalDateTime.now()));
+        //employee.setCreateTime(LocalDateTime.now());
+        //employee.setUpdateTime((LocalDateTime.now()));
 
         //设置创建人id
         //TODO 后期动态获取用户id
-        employee.setCreateUser(BaseContext.getCurrentId());
-        employee.setUpdateUser(BaseContext.getCurrentId());
+        //employee.setCreateUser(BaseContext.getCurrentId());
+        //employee.setUpdateUser(BaseContext.getCurrentId());
 
         employeeMapper.insert(employee);
 
@@ -104,7 +104,7 @@ public class EmployeeServiceImpl implements EmployeeService {
     public PageResult pageQuery(EmployeePageQueryDTO employeePageQueryDTO) {
         //select * from employee limit 10,20
         // 基于PageHelper插件实现动态分页查
-        Page<Object> objects = PageHelper.startPage(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
+        PageHelper.startPage(employeePageQueryDTO.getPage(), employeePageQueryDTO.getPageSize());
         Page<Employee>page=employeeMapper.pageQuery(employeePageQueryDTO);
         return new PageResult(page.getTotal(),page.getResult());
     }
@@ -145,8 +145,8 @@ public class EmployeeServiceImpl implements EmployeeService {
         Employee employee = new Employee();
         BeanUtils.copyProperties(employeeDTO,employee);
 
-        employee.setUpdateUser(BaseContext.getCurrentId());
-        employee.setUpdateTime(LocalDateTime.now());
+      //  employee.setUpdateUser(BaseContext.getCurrentId());
+      // employee.setUpdateTime(LocalDateTime.now());
         employeeMapper.update(employee);
     }
 
