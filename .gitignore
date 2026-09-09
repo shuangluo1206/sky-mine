@@ -5,6 +5,9 @@ target/
 
 application-local.yml
 
+# 本地密钥，绝不入库
+.env.local
+
 # nginx 运行时产物，不入库
 nginx/logs/
 

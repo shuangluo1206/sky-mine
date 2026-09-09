@@ -3,7 +3,7 @@ server:
 
 spring:
   profiles:
-    active: dev
+    active: dev #开发环境的，如果是上线了就是prod，比如你看下面的数据库配置就这
   main:
     allow-circular-references: true
   datasource:
@@ -34,6 +34,14 @@ sky:
     # 设置jwt签名加密时使用的秘钥
     admin-secret-key: itcast
     # 设置jwt过期时间
-    admin-ttl: 720000000
+    admin-ttl: 7200000
     # 设置前端传递过来的令牌名称
     admin-token-name: token
+  alioss:
+    endpoint: ${sky.alioss.endpoint}
+    access-key-id: ${sky.alioss.access-key-id}
+    access-key-secret: ${sky.alioss.access-key-secret}
+    bucket-name: ${sky.alioss.bucket-name}
+
+
+

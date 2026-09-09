@@ -6,3 +6,9 @@ sky:
     database: sky_take_out
     username: root
     password: ""
+  alioss:
+    endpoint: oss-cn-beijing.aliyuncs.com
+    access-key-id: ${ALIOSS_ACCESS_KEY_ID}
+    access-key-secret: ${ALIOSS_ACCESS_KEY_SECRET}
+    bucket-name: sky-mine
+    #用的是我自己的
