@@ -35,17 +35,15 @@ public class AliOssUtil {
             // 创建PutObject请求。
             ossClient.putObject(bucketName, objectName, new ByteArrayInputStream(bytes));
         } catch (OSSException oe) {
-            System.out.println("Caught an OSSException, which means your request made it to OSS, "
-                    + "but was rejected with an error response for some reason.");
-            System.out.println("Error Message:" + oe.getErrorMessage());
-            System.out.println("Error Code:" + oe.getErrorCode());
-            System.out.println("Request ID:" + oe.getRequestId());
-            System.out.println("Host ID:" + oe.getHostId());
+            //请求到达了OSS，但被OSS拒绝：一般是密钥、权限、bucket名或endpoint的问题
+            log.error("OSS拒绝了上传请求 errorCode={}, errorMessage={}, requestId={}, hostId={}",
+                    oe.getErrorCode(), oe.getErrorMessage(), oe.getRequestId(), oe.getHostId());
+            //必须抛出去，否则下面会拼出一个文件并不存在的URL，把失败伪装成成功
+            throw oe;
         } catch (ClientException ce) {
-            System.out.println("Caught an ClientException, which means the client encountered "
-                    + "a serious internal problem while trying to communicate with OSS, "
-                    + "such as not being able to access the network.");
-            System.out.println("Error Message:" + ce.getMessage());
+            //连不上OSS：网络、代理、endpoint写错等
+            log.error("无法与OSS通信：{}", ce.getMessage());
+            throw ce;
         } finally {
             if (ossClient != null) {
                 ossClient.shutdown();

@@ -33,7 +33,7 @@ public class GlobalExceptionHandler {
     /**
      * 处理sql异常，这里是新增员工信息重复
      *
-     * @param ex
+     * @param
      * @return
      */
     @ExceptionHandler
