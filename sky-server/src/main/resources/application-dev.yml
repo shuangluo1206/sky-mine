@@ -12,3 +12,8 @@ sky:
     access-key-secret: ${ALIOSS_ACCESS_KEY_SECRET}
     bucket-name: sky-mine
     #用的是我自己的
+  redis:
+    host: localhost
+    port: 6379
+    password:
+    database: 10

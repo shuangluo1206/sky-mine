@@ -49,7 +49,7 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
     //程序启动的时候就会执行这个代码，用的是swagger，
     // 比如就是能解析"com.sky.controller，能解析这个接口，然后生成接口方法
     @Bean
-    public Docket docket() {
+    public Docket docket1() {
         ApiInfo apiInfo = new ApiInfoBuilder()
                 .title("sky外卖项目接口文档")
                 .version("2.0")
@@ -57,9 +57,29 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
                         ("sky外卖项目接口文档")
                 .build();
         Docket docket = new Docket(DocumentationType.SWAGGER_2)
+                .groupName("管理端接口")
                 .apiInfo(apiInfo)
                 .select()
-                .apis(RequestHandlerSelectors.basePackage("com.sky.controller"))
+                .apis(RequestHandlerSelectors.basePackage("com.sky.controller.admin"))
+                .paths(PathSelectors.any())
+                .build();
+        return docket;
+    }
+
+
+    @Bean
+    public Docket docket2() {
+        ApiInfo apiInfo = new ApiInfoBuilder()
+                .title("sky外卖项目接口文档")
+                .version("2.0")
+                .description
+                        ("sky外卖项目接口文档")
+                .build();
+        Docket docket = new Docket(DocumentationType.SWAGGER_2)
+                .groupName("客户端接口")
+                .apiInfo(apiInfo)
+                .select()
+                .apis(RequestHandlerSelectors.basePackage("com.sky.controller.user" ))
                 .paths(PathSelectors.any())
                 .build();
         return docket;
