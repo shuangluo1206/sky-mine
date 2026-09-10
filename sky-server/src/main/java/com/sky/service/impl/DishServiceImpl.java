@@ -13,11 +13,14 @@ import com.sky.mapper.DishFlavorMapper;
 import com.sky.mapper.DishMapper;
 import com.sky.mapper.SetmealDishMapper;
 import com.sky.result.PageResult;
+import com.sky.result.Result;
 import com.sky.service.DishService;
+import com.sky.vo.DishVO;
 import org.springframework.beans.BeanUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.bind.annotation.PathVariable;
 
 import java.util.List;
 
@@ -37,13 +40,13 @@ public class DishServiceImpl implements DishService {
     @Transactional  //这里是同时更新菜品，和对应的口味，口味存在多种，所以用object
     public void saveWithFlavor(DishDTO dishDTO) {
         Dish dish = new Dish();
-        BeanUtils.copyProperties(dishDTO,dish);
+        BeanUtils.copyProperties(dishDTO, dish);
         dishMapper.insert(dish);
 
         //这里要插入口味，必须获得菜品的id
         Long dishId = dish.getId();
         List<DishFlavor> flavors = dishDTO.getFlavors();
-        if (flavors!=null && flavors.size()>0){
+        if (flavors != null && flavors.size() > 0) {
             flavors.forEach(dishFlavor -> {
                 dishFlavor.setDishId(dishId);
             });
@@ -56,12 +59,12 @@ public class DishServiceImpl implements DishService {
     @Override
 
     public PageResult pageQuery(DishPageQueryDTO dishPageQueryDTO) {
-        PageHelper.startPage(dishPageQueryDTO.getPage(),dishPageQueryDTO.getPageSize());
-        Page<DishDTO> page=dishMapper.pageQuery(dishPageQueryDTO);
-        return new PageResult(page.getTotal(),page.getResult());
+        PageHelper.startPage(dishPageQueryDTO.getPage(), dishPageQueryDTO.getPageSize());
+        Page<DishDTO> page = dishMapper.pageQuery(dishPageQueryDTO);
+        return new PageResult(page.getTotal(), page.getResult());
     }
 
-   
+
     @Override
     @Transactional
     public void deleteBatch(List<Long> ids) {
@@ -69,24 +72,59 @@ public class DishServiceImpl implements DishService {
         /**
          * 检查是不是预售中的菜
          */
-        ids.forEach(id-> {
-           Dish dish= dishMapper.getById(id);
-           if (dish.getStatus()== StatusConstant.ENABLE){
-               throw new DeletionNotAllowedException(MessageConstant.DISH_ON_SALE);
-           }
+        ids.forEach(id -> {
+            Dish dish = dishMapper.getById(id);
+            if (dish.getStatus() == StatusConstant.ENABLE) {
+                throw new DeletionNotAllowedException(MessageConstant.DISH_ON_SALE);
+            }
         });
         /**
          * 检查是否是套餐中的菜
          */
-      List<Long>setMealIds=setmealDishMapper.getSetmealIdsByDishIds(ids);
-      if(setMealIds!=null&&setMealIds.size()>0){
-          throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_SETMEAL);
-      }
+        List<Long> setMealIds = setmealDishMapper.getSetmealIdsByDishIds(ids);
+        if (setMealIds != null && setMealIds.size() > 0) {
+            throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_SETMEAL);
+        }
 
-      ids.forEach(id->{
-          dishMapper.deleteById(id);
-          //口味要同时删除
-          dishFlavorMapper.deleByDishrId(id);
-      });
+        ids.forEach(id -> {
+            dishMapper.deleteById(id);
+            //口味要同时删除
+            dishFlavorMapper.deleByDishrId(id);
+        });
     }
+
+    @Override
+    public DishVO getByIdWithFlavor(Long id) {
+        //查询菜品表
+        Dish dish = dishMapper.getById(id);
+        // 查询关联的口味
+     List<DishFlavor> dishFlavorList = dishFlavorMapper.getByDishId(id);
+        DishVO dishVO = new DishVO();
+        BeanUtils.copyProperties(dish,dishVO);
+        dishVO.setFlavors(dishFlavorList);
+
+        return dishVO;
+    }
+
+    @Override
+    public void updateWithFlavor(DishDTO dishDTO) {
+        Dish dish = new Dish();
+        BeanUtils.copyProperties(dishDTO,dish);
+        dishMapper.update(dish);
+
+        dishFlavorMapper.deleByDishrId(dish.getId());
+        List<DishFlavor> flavors = dishDTO.getFlavors();
+
+
+        if (flavors!=null &&flavors.size()>0){
+            flavors.forEach(dishflavor->{
+                dishflavor.setDishId(dishDTO.getId());
+
+            });
+            dishFlavorMapper.insertBatch(flavors);
+        }
+
+    }
+
+
 }
