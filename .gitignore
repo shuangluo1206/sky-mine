@@ -4,7 +4,7 @@ target/
 .DS_Store
 
 application-local.yml
-
+test/
 # 本地密钥，绝不入库
 .env.local
 
