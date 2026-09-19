@@ -10,9 +10,11 @@ import io.swagger.annotations.Api;
 import io.swagger.annotations.ApiOperation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.data.redis.core.RedisTemplate;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
+import java.util.Set;
 
 @RestController
 @RequestMapping("/admin/dish")
@@ -25,12 +27,19 @@ public class DishController {
      * 新增菜品
      *
      */
+    @Autowired
+    private RedisTemplate redisTemplate;
 
     @PostMapping
     @ApiOperation("新增菜品")
     public Result<String> save(@RequestBody DishDTO dishDTO){
         log.info("新增菜品：{}",dishDTO);
          dishService.saveWithFlavor(dishDTO);
+
+         //清理缓存数据
+        Long categoryId = dishDTO.getCategoryId();
+        String key="dish_"+categoryId;
+        cleanCahe(key);
         return Result.success();
     }
 
@@ -48,7 +57,7 @@ public class DishController {
     }
 
     /**
-     *
+     *批量菜品删除
      * @param ids
      * @return
      */
@@ -57,8 +66,17 @@ public class DishController {
     public  Result delete(@RequestParam List<Long> ids){
         log.info("批量删除菜品：{}",ids);
         dishService.deleteBatch(ids);
+
+        //将所有菜品批量数据清理掉，所有以dish_开头的key
+        cleanCahe("dish_*");
         return Result.success();
     }
+
+    /**
+     * 根据id查询菜品
+     * @param id
+     * @return
+     */
     @GetMapping("/{id}")
     @ApiOperation("根据id查询菜品和关联的口味数据")
     public Result<DishVO> getById(@PathVariable Long id){
@@ -71,6 +89,10 @@ public class DishController {
     public Result update(@RequestBody DishDTO dishDTO){
         log.info("更新菜品:{}",dishDTO);
         dishService.updateWithFlavor(dishDTO);
+
+        //删除所有菜品的缓存数据
+        //将所有菜品批量数据清理掉，所有以dish_开头的key
+        cleanCahe("dish_*");
         return Result.success();
     }
 
@@ -79,9 +101,17 @@ public class DishController {
     public Result<String> startOrStop(@PathVariable Integer status, Long id) {
         dishService.startOrStop(status, id);
 
-        
+        //将所有菜品批量数据清理掉，所有以dish_开头的key
+        cleanCahe("dish_*");
 
 
         return Result.success();
+    }
+
+
+    private void cleanCahe(String pattern){
+        //将所有菜品批量数据清理掉，所有以dish_开头的key
+        Set keys = redisTemplate.keys(pattern);
+        redisTemplate.delete(keys);
     }
 }

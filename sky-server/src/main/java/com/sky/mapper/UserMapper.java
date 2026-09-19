@@ -12,8 +12,6 @@ import java.util.List;
 
 @Mapper
 public interface UserMapper {
-    @AutoFill(OperationType.INSERT)
-    public void insertBatch(List<DishFlavor> flavors) ;
 
 
     @Delete("delete from dish_flavor where dish_id = #{dishId}")
