@@ -65,7 +65,7 @@ public class DishServiceImpl implements DishService {
 
     public PageResult pageQuery(DishPageQueryDTO dishPageQueryDTO) {
         PageHelper.startPage(dishPageQueryDTO.getPage(), dishPageQueryDTO.getPageSize());
-        Page<DishDTO> page = dishMapper.pageQuery(dishPageQueryDTO);
+        Page<DishVO> page = dishMapper.pageQuery(dishPageQueryDTO);
         return new PageResult(page.getTotal(), page.getResult());
     }
 
@@ -86,6 +86,7 @@ public class DishServiceImpl implements DishService {
         /**
          * 检查是否是套餐中的菜
          */
+
         List<Long> setMealIds = setmealDishMapper.getSetmealIdsByDishIds(ids);
         if (setMealIds != null && setMealIds.size() > 0) {
             throw new DeletionNotAllowedException(MessageConstant.CATEGORY_BE_RELATED_BY_SETMEAL);

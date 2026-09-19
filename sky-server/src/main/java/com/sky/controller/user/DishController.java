@@ -42,7 +42,6 @@ public class DishController {
 //
 //        return Result.success(list);
 
-
         //现在修改逻辑，变为用redis进行缓存
         String key="dish_"+categoryId;
         //查看redis是否有缓存的数据
