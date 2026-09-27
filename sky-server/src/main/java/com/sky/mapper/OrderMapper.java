@@ -45,4 +45,10 @@ public interface OrderMapper {
     Integer countStatus(Integer status);
 
     List<Orders> getByStatusAndOrderTime(@Param("status") Integer status, @Param("orderTime") LocalDateTime orderTime);
+
+    Double sumByMap(Map map);
+
+    List<GoodsSalesDTO> getSalesTop10(@Param("beginTime") LocalDateTime beginTime, @Param("endTime") LocalDateTime endTime);
+
+    Integer countByMap(Map map);
 }
