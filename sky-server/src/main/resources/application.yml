@@ -57,7 +57,9 @@ sky:
   wechat:
     appid: ${sky.wechat.appid}
     secret: ${sky.wechat.secret}
-
-
+  shop:
+    address: 北京市昌平区天通苑西区5号楼3号
+  baidu:
+    ak: AVMmUrYOPEn0LVee1lmTpUyPUQJ8N7AE
 
 
