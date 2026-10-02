@@ -10,5 +10,5 @@ import java.util.List;
 public interface UserService {
 
 
-    User wxLogin(UserLoginDTO userLoginDTO);
+    User wxLogin(UserLoginDTO userLoginDTO) throws Exception;
 }

@@ -1,8 +1,8 @@
 package com.sky.controller.admin;
 
 import com.sky.result.Result;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import io.swagger.v3.oas.annotations.Operation;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.redis.core.RedisTemplate;
@@ -11,7 +11,7 @@ import org.springframework.web.bind.annotation.*;
 @RestController("adminShopController")
 @Slf4j
 @RequestMapping("/admin/shop")
-@Api(tags = "店铺相关接口")
+@Tag(name = "店铺相关接口", description = "店铺相关接口")
 public class ShopController {
     public static final String KEY="SHOP_STATUS";
 
@@ -25,10 +25,10 @@ public class ShopController {
      *
      */
     @PutMapping("/{status}")
-    @ApiOperation("设置营业状态")
+    @Operation(summary = "设置营业状态")
     public Result<String>setStatus(@PathVariable Integer status ){
         log.info("设置营业状态：{}",status==1 ?"营业中":"打样中");
-        redisTemplate.opsForValue().set(KEY,status);
+        redisTemplate.opsForValue().set(KEY, String.valueOf(status));
         return Result.success();
     }
 
@@ -37,9 +37,10 @@ public class ShopController {
      * @return
      */
     @GetMapping("/status")
-    @ApiOperation("查询营业状态")
+    @Operation(summary = "查询营业状态")
     public  Result<Integer>getStatus(){
-        Integer status=(Integer) redisTemplate.opsForValue().get(KEY);
+        String statusStr = (String) redisTemplate.opsForValue().get(KEY);
+        Integer status = statusStr == null ? 0 : Integer.parseInt(statusStr);
         log.info("查询营业状态：{}",status==1?"营业中":"打样中");
         return Result.success(status);
     }

@@ -38,13 +38,13 @@ logging:
 sky:
   jwt:
     # 设置jwt签名加密时使用的秘钥
-    admin-secret-key: itcast
+    admin-secret-key: sky-mine-admin-jwt-secret-key-2026-boot3-migration
     # 设置jwt过期时间
     admin-ttl: 86400000
     # 设置前端传递过来的令牌名称
     admin-token-name: token
     #设置jwt签名加密时使用的秘钥
-    user-secret-key: sky-mine
+    user-secret-key: sky-mine-user-jwt-secret-key-2026-boot3-migration
     #设置jwt过期时间
     user-ttl: 86400000
     #设置前端传递过来的令牌名称

@@ -1,10 +1,13 @@
 package com.sky.service.impl;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONArray;
-import com.alibaba.fastjson.JSONObject;
+
+
+
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+
 import com.sky.constant.MessageConstant;
 import com.sky.context.BaseContext;
 import com.sky.dto.*;
@@ -44,6 +47,9 @@ import java.util.stream.Collectors;
 @Slf4j
 public class OrderServiceImpl implements OrderService {
 
+    // fastjson → Jackson：解析百度地图 API 响应用
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     @Value("${sky.shop.address}")
     private String shopAddress;
 
@@ -73,7 +79,7 @@ public class OrderServiceImpl implements OrderService {
      * @return
      */
     @Transactional
-    public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) {
+    public OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) throws Exception {
         //异常情况的处理（收货地址为空、购物车为空）
         AddressBook addressBook = addressBookMapper.getById(ordersSubmitDTO.getAddressBookId());
         if (addressBook == null) {
@@ -184,7 +190,7 @@ public class OrderServiceImpl implements OrderService {
      *
      * @param outTradeNo
      */
-    public void paySuccess(String outTradeNo) {
+    public void paySuccess(String outTradeNo) throws Exception {
 
         // 根据订单号查询订单
         Orders ordersDB = orderMapper.getByNumber(outTradeNo);
@@ -205,8 +211,8 @@ public class OrderServiceImpl implements OrderService {
         map.put("orderId", orders.getId());
         map.put("content", "订单号：" + outTradeNo);
 
-//        通过WebSocket实现来电提醒，向客户端浏览器推送消息
-        webSocketServer.sendToAllClient(JSON.toJSONString(map));
+//        通过WebSocket实现来电提醒，向客户端浏览器推送消息（fastjson → Jackson）
+        webSocketServer.sendToAllClient(new ObjectMapper().writeValueAsString(map));
         log.info("来电提醒成功！！！");
     }
 
@@ -503,7 +509,7 @@ public class OrderServiceImpl implements OrderService {
      * 检查客户的收货地址是否超出配送范围
      * @param address
      */
-    private void checkOutOfRange(String address) {
+    private void checkOutOfRange(String address) throws Exception {
         log.info("用户的地址是：{}",address);
         Map map = new HashMap();
         map.put("address",shopAddress);
@@ -513,15 +519,15 @@ public class OrderServiceImpl implements OrderService {
         //获取店铺的经纬度坐标
         String shopCoordinate = HttpClientUtil.doGet("https://api.map.baidu.com/geocoding/v3", map);
 
-        JSONObject jsonObject = JSON.parseObject(shopCoordinate);
-        if(!jsonObject.getString("status").equals("0")){
+        JsonNode jsonObject = MAPPER.readTree(shopCoordinate);
+        if(!jsonObject.get("status").asText().equals("0")){
             throw new OrderBusinessException("店铺地址解析失败");
         }
 
         //数据解析
-        JSONObject location = jsonObject.getJSONObject("result").getJSONObject("location");
-        String lat = location.getString("lat");
-        String lng = location.getString("lng");
+        JsonNode location = jsonObject.get("result").get("location");
+        String lat = location.get("lat").asText();
+        String lng = location.get("lng").asText();
         //店铺经纬度坐标
         String shopLngLat = lat + "," + lng;
 
@@ -529,15 +535,15 @@ public class OrderServiceImpl implements OrderService {
         //获取用户收货地址的经纬度坐标
         String userCoordinate = HttpClientUtil.doGet("https://api.map.baidu.com/geocoding/v3", map);
 
-        jsonObject = JSON.parseObject(userCoordinate);
-        if(!jsonObject.getString("status").equals("0")){
+        jsonObject = MAPPER.readTree(userCoordinate);
+        if(!jsonObject.get("status").asText().equals("0")){
             throw new OrderBusinessException("收货地址解析失败");
         }
 
         //数据解析
-        location = jsonObject.getJSONObject("result").getJSONObject("location");
-        lat = location.getString("lat");
-        lng = location.getString("lng");
+        location = jsonObject.get("result").get("location");
+        lat = location.get("lat").asText();
+        lng = location.get("lng").asText();
         //用户收货地址经纬度坐标
         String userLngLat = lat + "," + lng;
 
@@ -548,15 +554,15 @@ public class OrderServiceImpl implements OrderService {
         //路线规划
         String json = HttpClientUtil.doGet("https://api.map.baidu.com/directionlite/v1/driving", map);
 
-        jsonObject = JSON.parseObject(json);
-        if(!jsonObject.getString("status").equals("0")){
+        jsonObject = MAPPER.readTree(json);
+        if(!jsonObject.get("status").asText().equals("0")){
             throw new OrderBusinessException("配送路线规划失败");
         }
 
         //数据解析
-        JSONObject result = jsonObject.getJSONObject("result");
-        JSONArray jsonArray = (JSONArray) result.get("routes");
-        Integer distance = (Integer) ((JSONObject) jsonArray.get(0)).get("distance");
+        JsonNode result = jsonObject.get("result");
+        JsonNode jsonArray = result.get("routes");
+        Integer distance = jsonArray.get(0).get("distance").asInt();
 
         if(distance > 5000){
             //配送距离超过5000米
@@ -570,7 +576,7 @@ public class OrderServiceImpl implements OrderService {
      * 用户催单
      *
      */
-    public void reminder(Long id){
+    public void reminder(Long id) throws Exception {
         Orders orders = orderMapper.getById(id);
         if (orders==null){
             throw  new OrderBusinessException(MessageConstant.ORDER_NOT_FOUND);
@@ -579,7 +585,7 @@ public class OrderServiceImpl implements OrderService {
         map.put("type",2);
         map.put("orderId",id);
         map.put("content","订单号"+orders.getNumber());
-        webSocketServer.sendToAllClient(JSON.toJSONString(map));
+        webSocketServer.sendToAllClient(MAPPER.writeValueAsString(map));
         log.info("催单成功！！！");
     }
 

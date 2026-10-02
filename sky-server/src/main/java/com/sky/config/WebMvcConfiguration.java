@@ -4,6 +4,7 @@ import com.sky.interceptor.JwtTokenAdminInterceptor;
 import com.sky.interceptor.JwtTokenUserInterceptor;
 import com.sky.json.JacksonObjectMapper;
 import lombok.extern.slf4j.Slf4j;
+import org.springdoc.core.models.GroupedOpenApi;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -12,12 +13,6 @@ import org.springframework.http.converter.json.MappingJackson2HttpMessageConvert
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.ResourceHandlerRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurationSupport;
-import springfox.documentation.builders.ApiInfoBuilder;
-import springfox.documentation.builders.PathSelectors;
-import springfox.documentation.builders.RequestHandlerSelectors;
-import springfox.documentation.service.ApiInfo;
-import springfox.documentation.spi.DocumentationType;
-import springfox.documentation.spring.web.plugins.Docket;
 
 import java.util.List;
 
@@ -50,46 +45,24 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
     }
 
     /**
-     * 通过knife4j生成接口文档
-     * @return
+     * springdoc-openapi 替代 knife4j/springfox 的 Docket。
+     * 两个 Docket Bean 换成 GroupedOpenApi，扫描包用 packagesToScan 指定。
+     * UI 地址从 /doc.html 变为 /swagger-ui.html。
      */
-    //程序启动的时候就会执行这个代码，用的是swagger，
-    // 比如就是能解析"com.sky.controller，能解析这个接口，然后生成接口方法
     @Bean
-    public Docket docket1() {
-        ApiInfo apiInfo = new ApiInfoBuilder()
-                .title("sky外卖项目接口文档")
-                .version("2.0")
-                .description
-                        ("sky外卖项目接口文档")
+    public GroupedOpenApi adminApi() {
+        return GroupedOpenApi.builder()
+                .group("管理端接口")
+                .packagesToScan("com.sky.controller.admin")
                 .build();
-        Docket docket = new Docket(DocumentationType.SWAGGER_2)
-                .groupName("管理端接口")
-                .apiInfo(apiInfo)
-                .select()
-                .apis(RequestHandlerSelectors.basePackage("com.sky.controller.admin"))
-                .paths(PathSelectors.any())
-                .build();
-        return docket;
     }
 
-
     @Bean
-    public Docket docket2() {
-        ApiInfo apiInfo = new ApiInfoBuilder()
-                .title("sky外卖项目接口文档")
-                .version("2.0")
-                .description
-                        ("sky外卖项目接口文档")
+    public GroupedOpenApi userApi() {
+        return GroupedOpenApi.builder()
+                .group("客户端接口")
+                .packagesToScan("com.sky.controller.user")
                 .build();
-        Docket docket = new Docket(DocumentationType.SWAGGER_2)
-                .groupName("客户端接口")
-                .apiInfo(apiInfo)
-                .select()
-                .apis(RequestHandlerSelectors.basePackage("com.sky.controller.user" ))
-                .paths(PathSelectors.any())
-                .build();
-        return docket;
     }
 
     /**
@@ -98,20 +71,25 @@ public class WebMvcConfiguration extends WebMvcConfigurationSupport {
      */
     protected void addResourceHandlers(ResourceHandlerRegistry registry) {
         log.info("开始设置静态资源映射,,,");
-        registry.addResourceHandler("/doc.html").addResourceLocations("classpath:/META-INF/resources/");
-        registry.addResourceHandler("/webjars/**").addResourceLocations("classpath:/META-INF/resources/webjars/");
+        // 本类继承 WebMvcConfigurationSupport 会关闭 Boot 的 MVC 自动配置，
+        // springdoc 的 swagger-ui 资源映射也被连带关掉，必须显式注册：
+        registry.addResourceHandler("/swagger-ui/**")
+                .addResourceLocations("classpath:/META-INF/resources/webjars/swagger-ui/5.13.0/");
     }
 
-    //在 WebMvcConfiguration 中扩展Spring MVC的消息转换器，统一对日期类型进行格
+    //在 WebMvcConfiguration 中扩展Spring MVC的消息转换器，统一对日期类型进行格式化
     @Override
     protected void extendMessageConverters(List<HttpMessageConverter<?>> converters) {
         log.info("扩展消息转换器");
-        //创建消息转化器
-        MappingJackson2HttpMessageConverter converter = new MappingJackson2HttpMessageConverter();
-        //设置对象转换器，可以将Java对象转为json字符串
-        converter.setObjectMapper(new JacksonObjectMapper());
-        //将我们自己的转换器放入spring MVC框架的容器中
-        converters.add(0,converter);//序号最靠前，为0
+        // Boot 3 迁移修复：原写法 converters.add(0, ...) 把自定义 Jackson 转换器插到第 0 位，
+        // 会抢在 ByteArrayHttpMessageConverter 之前把 springdoc /v3/api-docs 返回的 byte[]
+        // 序列化成 base64。改为直接替换默认 Jackson 转换器内部的 ObjectMapper，不动顺序。
+        for (HttpMessageConverter<?> converter : converters) {
+            if (converter instanceof MappingJackson2HttpMessageConverter) {
+                ((MappingJackson2HttpMessageConverter) converter)
+                        .setObjectMapper(new JacksonObjectMapper());
+                break;
+            }
+        }
     }
 }
-

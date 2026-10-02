@@ -1,8 +1,8 @@
 package com.sky.controller.notify;
 
-import com.alibaba.druid.support.json.JSONUtils;
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.sky.properties.WeChatProperties;
 import com.sky.service.OrderService;
 import com.wechat.pay.contrib.apache.httpclient.util.AesUtil;
@@ -11,11 +11,10 @@ import org.apache.http.entity.ContentType;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
-import javax.servlet.http.HttpServletRequest;
-import javax.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 import java.io.BufferedReader;
 import java.nio.charset.StandardCharsets;
-import java.util.HashMap;
 
 /**
  * 支付回调相关接口
@@ -24,6 +23,7 @@ import java.util.HashMap;
 @RequestMapping("/notify")
 @Slf4j
 public class PayNotifyController {
+    private static final ObjectMapper MAPPER = new ObjectMapper();
     @Autowired
     private OrderService orderService;
     @Autowired
@@ -44,9 +44,9 @@ public class PayNotifyController {
         String plainText = decryptData(body);
         log.info("解密后的文本：{}", plainText);
 
-        JSONObject jsonObject = JSON.parseObject(plainText);
-        String outTradeNo = jsonObject.getString("out_trade_no");//商户平台订单号
-        String transactionId = jsonObject.getString("transaction_id");//微信支付交易号
+        JsonNode jsonNode = MAPPER.readTree(plainText);
+        String outTradeNo = jsonNode.get("out_trade_no").asText();//商户平台订单号
+        String transactionId = jsonNode.get("transaction_id").asText();//微信支付交易号
 
         log.info("商户平台订单号：{}", outTradeNo);
         log.info("微信支付交易号：{}", transactionId);
@@ -86,11 +86,10 @@ public class PayNotifyController {
      * @throws Exception
      */
     private String decryptData(String body) throws Exception {
-        JSONObject resultObject = JSON.parseObject(body);
-        JSONObject resource = resultObject.getJSONObject("resource");
-        String ciphertext = resource.getString("ciphertext");
-        String nonce = resource.getString("nonce");
-        String associatedData = resource.getString("associated_data");
+        JsonNode resource = MAPPER.readTree(body).get("resource");
+        String ciphertext = resource.get("ciphertext").asText();
+        String nonce = resource.get("nonce").asText();
+        String associatedData = resource.get("associated_data").asText();
 
         AesUtil aesUtil = new AesUtil(weChatProperties.getApiV3Key().getBytes(StandardCharsets.UTF_8));
         //密文解密
@@ -107,11 +106,11 @@ public class PayNotifyController {
      */
     private void responseToWeixin(HttpServletResponse response) throws Exception{
         response.setStatus(200);
-        HashMap<Object, Object> map = new HashMap<>();
-        map.put("code", "SUCCESS");
-        map.put("message", "SUCCESS");
+        ObjectNode result = MAPPER.createObjectNode();
+        result.put("code", "SUCCESS");
+        result.put("message", "SUCCESS");
         response.setHeader("Content-type", ContentType.APPLICATION_JSON.toString());
-        response.getOutputStream().write(JSONUtils.toJSONString(map).getBytes(StandardCharsets.UTF_8));
+        response.getOutputStream().write(MAPPER.writeValueAsBytes(result));
         response.flushBuffer();
     }
 }

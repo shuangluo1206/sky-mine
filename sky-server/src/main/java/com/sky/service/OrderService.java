@@ -11,7 +11,7 @@ public interface OrderService {
      * @param ordersSubmitDTO
      * @return
      */
-    OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO);
+    OrderSubmitVO submitOrder(OrdersSubmitDTO ordersSubmitDTO) throws Exception;
 
     /**
      * 订单支付
@@ -24,7 +24,7 @@ public interface OrderService {
      * 支付成功，修改订单状态
      * @param outTradeNo
      */
-    void paySuccess(String outTradeNo);
+    void paySuccess(String outTradeNo) throws Exception;
 
     /**
      * 用户端订单分页查询
@@ -55,5 +55,5 @@ public interface OrderService {
 
     void complete(Long id);
 
-    void reminder(Long id);
+    void reminder(Long id) throws Exception;
 }

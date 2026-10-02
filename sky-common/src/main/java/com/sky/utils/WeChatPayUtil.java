@@ -1,7 +1,7 @@
 package com.sky.utils;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.sky.properties.WeChatProperties;
 import com.wechat.pay.contrib.apache.httpclient.WechatPayHttpClientBuilder;
 import com.wechat.pay.contrib.apache.httpclient.util.PemUtil;
@@ -34,6 +34,9 @@ import java.util.List;
  */
 @Component
 public class WeChatPayUtil {
+
+    // Jackson 替代 fastjson：线程安全，可作为静态常量复用
+    private static final ObjectMapper MAPPER = new ObjectMapper();
 
     //微信支付下单接口地址
     public static final String JSAPI = "https://api.mch.weixin.qq.com/v3/pay/transactions/jsapi";
@@ -132,25 +135,25 @@ public class WeChatPayUtil {
      * @return
      */
     private String jsapi(String orderNum, BigDecimal total, String description, String openid) throws Exception {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("appid", weChatProperties.getAppid());
-        jsonObject.put("mchid", weChatProperties.getMchid());
-        jsonObject.put("description", description);
-        jsonObject.put("out_trade_no", orderNum);
-        jsonObject.put("notify_url", weChatProperties.getNotifyUrl());
+        com.fasterxml.jackson.databind.node.ObjectNode rootNode = MAPPER.createObjectNode();
+        rootNode.put("appid", weChatProperties.getAppid());
+        rootNode.put("mchid", weChatProperties.getMchid());
+        rootNode.put("description", description);
+        rootNode.put("out_trade_no", orderNum);
+        rootNode.put("notify_url", weChatProperties.getNotifyUrl());
 
-        JSONObject amount = new JSONObject();
+        com.fasterxml.jackson.databind.node.ObjectNode amount = MAPPER.createObjectNode();
         amount.put("total", total.multiply(new BigDecimal(100)).setScale(2, BigDecimal.ROUND_HALF_UP).intValue());
         amount.put("currency", "CNY");
 
-        jsonObject.put("amount", amount);
+        rootNode.set("amount", amount);
 
-        JSONObject payer = new JSONObject();
+        com.fasterxml.jackson.databind.node.ObjectNode payer = MAPPER.createObjectNode();
         payer.put("openid", openid);
 
-        jsonObject.put("payer", payer);
+        rootNode.set("payer", payer);
 
-        String body = jsonObject.toJSONString();
+        String body = rootNode.toString();
         return post(JSAPI, body);
     }
 
@@ -163,14 +166,17 @@ public class WeChatPayUtil {
      * @param openid      微信用户的openid
      * @return
      */
-    public JSONObject pay(String orderNum, BigDecimal total, String description, String openid) throws Exception {
+    public com.fasterxml.jackson.databind.node.ObjectNode pay(String orderNum, BigDecimal total, String description, String openid) throws Exception {
         //统一下单，生成预支付交易单
         String bodyAsString = jsapi(orderNum, total, description, openid);
         //解析返回结果
-        JSONObject jsonObject = JSON.parseObject(bodyAsString);
+        com.fasterxml.jackson.databind.node.ObjectNode jsonObject = (com.fasterxml.jackson.databind.node.ObjectNode) MAPPER.readTree(bodyAsString);
         System.out.println(jsonObject);
 
-        String prepayId = jsonObject.getString("prepay_id");
+        // fastjson 的 getString 缺字段返回 null；Jackson 的 get() 缺字段也返回 null，
+        // 但 asText() 前必须判空，否则 NPE（两库行为差异，迁移时容易踩）
+        JsonNode prepayNode = jsonObject.get("prepay_id");
+        String prepayId = prepayNode == null ? null : prepayNode.asText();
         if (prepayId != null) {
             String timeStamp = String.valueOf(System.currentTimeMillis() / 1000);
             String nonceStr = RandomStringUtils.randomNumeric(32);
@@ -193,7 +199,7 @@ public class WeChatPayUtil {
             String packageSign = Base64.getEncoder().encodeToString(signature.sign());
 
             //构造数据给微信小程序，用于调起微信支付
-            JSONObject jo = new JSONObject();
+            com.fasterxml.jackson.databind.node.ObjectNode jo = MAPPER.createObjectNode();
             jo.put("timeStamp", timeStamp);
             jo.put("nonceStr", nonceStr);
             jo.put("package", "prepay_id=" + prepayId);
@@ -215,19 +221,19 @@ public class WeChatPayUtil {
      * @return
      */
     public String refund(String outTradeNo, String outRefundNo, BigDecimal refund, BigDecimal total) throws Exception {
-        JSONObject jsonObject = new JSONObject();
-        jsonObject.put("out_trade_no", outTradeNo);
-        jsonObject.put("out_refund_no", outRefundNo);
+        com.fasterxml.jackson.databind.node.ObjectNode rootNode = MAPPER.createObjectNode();
+        rootNode.put("out_trade_no", outTradeNo);
+        rootNode.put("out_refund_no", outRefundNo);
 
-        JSONObject amount = new JSONObject();
+        com.fasterxml.jackson.databind.node.ObjectNode amount = MAPPER.createObjectNode();
         amount.put("refund", refund.multiply(new BigDecimal(100)).setScale(2, BigDecimal.ROUND_HALF_UP).intValue());
         amount.put("total", total.multiply(new BigDecimal(100)).setScale(2, BigDecimal.ROUND_HALF_UP).intValue());
         amount.put("currency", "CNY");
 
-        jsonObject.put("amount", amount);
-        jsonObject.put("notify_url", weChatProperties.getRefundNotifyUrl());
+        rootNode.set("amount", amount);
+        rootNode.put("notify_url", weChatProperties.getRefundNotifyUrl());
 
-        String body = jsonObject.toJSONString();
+        String body = rootNode.toString();
 
         //调用申请退款接口
         return post(REFUNDS, body);

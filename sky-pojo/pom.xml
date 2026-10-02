@@ -14,14 +14,21 @@
             <groupId>org.projectlombok</groupId>
             <artifactId>lombok</artifactId>
         </dependency>
+        <!-- DTO/VO 上的 @JsonFormat（日期序列化）实际在用，不能省 -->
         <dependency>
             <groupId>com.fasterxml.jackson.core</groupId>
-            <artifactId>jackson-databind</artifactId>
-            <version>2.9.2</version>
+            <artifactId>jackson-annotations</artifactId>
         </dependency>
+        <!-- DTO 上的 @DateTimeFormat 实际在用 -->
         <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-spring-boot-starter</artifactId>
+            <groupId>org.springframework</groupId>
+            <artifactId>spring-context</artifactId>
+        </dependency>
+        <!-- OpenAPI 3 注解（@Schema等），随父pom统一管理 -->
+        <dependency>
+            <groupId>io.swagger.core.v3</groupId>
+            <artifactId>swagger-annotations-jakarta</artifactId>
+            <version>2.2.21</version>
         </dependency>
     </dependencies>
 </project>

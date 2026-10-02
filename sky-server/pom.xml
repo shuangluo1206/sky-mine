@@ -40,9 +40,10 @@
             <scope>compile</scope>
         </dependency>
 
+        <!-- Boot 3 时代 MySQL 驱动坐标从 mysql:mysql-connector-java 改为 com.mysql:mysql-connector-j -->
         <dependency>
-            <groupId>mysql</groupId>
-            <artifactId>mysql-connector-java</artifactId>
+            <groupId>com.mysql</groupId>
+            <artifactId>mysql-connector-j</artifactId>
             <scope>runtime</scope>
         </dependency>
 
@@ -56,14 +57,11 @@
             <artifactId>lombok</artifactId>
         </dependency>
 
-        <dependency>
-            <groupId>com.alibaba</groupId>
-            <artifactId>fastjson</artifactId>
-        </dependency>
+        <!-- fastjson 已移除，Jackson 随 spring-boot-starter-web 传入 -->
 
         <dependency>
             <groupId>com.alibaba</groupId>
-            <artifactId>druid-spring-boot-starter</artifactId>
+            <artifactId>druid-spring-boot-3-starter</artifactId>
         </dependency>
 
         <dependency>
@@ -81,9 +79,10 @@
             <artifactId>aspectjweaver</artifactId>
         </dependency>
 
+        <!-- springdoc-openapi 替代 knife4j，UI 地址从 /doc.html 变为 /swagger-ui.html -->
         <dependency>
-            <groupId>com.github.xiaoymin</groupId>
-            <artifactId>knife4j-spring-boot-starter</artifactId>
+            <groupId>org.springdoc</groupId>
+            <artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
         </dependency>
 
         <dependency>

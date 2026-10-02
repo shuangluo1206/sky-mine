@@ -1,7 +1,7 @@
 package com.sky.service.impl;
 
-import com.alibaba.fastjson.JSON;
-import com.alibaba.fastjson.JSONObject;
+import com.fasterxml.jackson.databind.JsonNode;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.github.pagehelper.Page;
 import com.github.pagehelper.PageHelper;
 import com.sky.constant.MessageConstant;
@@ -48,7 +48,7 @@ public class UserServiceImpl implements UserService {
     /**
      * 根据微信授权码实现微信登录     * @param userLoginDTO     * @return
      */
-    public User wxLogin(UserLoginDTO userLoginDTO) {
+    public User wxLogin(UserLoginDTO userLoginDTO) throws Exception {
        //取得授权码
         String code = userLoginDTO.getCode();
         String openid = getOpenid(code);
@@ -71,7 +71,8 @@ public class UserServiceImpl implements UserService {
 
     /*** 获取微信用户的openid * @param code * @return*/
 
-    private String getOpenid(String code) {
+    // Jackson 的 readTree 抛受检异常 JsonProcessingException（fastjson 不抛），签名需声明
+    private String getOpenid(String code) throws Exception {
         //请求参数封装
         Map map = new HashMap();
         map.put("appid",weChatProperties.getAppid());
@@ -83,8 +84,8 @@ public class UserServiceImpl implements UserService {
         log.info("微信登录返回结果：{}", json);
 
         //解析json字符串
-        JSONObject jsonObject = JSON.parseObject(json);
-        String openid = jsonObject.getString("openid");
+        JsonNode jsonNode = new ObjectMapper().readTree(json);
+        String openid = jsonNode.get("openid").asText();
         log.info("微信用户的openid为：{}", openid);
 
     return openid;
