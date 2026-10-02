@@ -12,6 +12,7 @@
             <if test="image != null">image = #{image},</if>
             <if test="description != null">description = #{description},</if>
             <if test="status != null">status = #{status},</if>
+            <if test="stock != null">stock = #{stock},</if>
             <if test="updateTime != null">update_time = #{updateTime},</if>
             <if test="updateUser != null">update_user = #{updateUser},</if>
         </set>
@@ -99,11 +100,11 @@
         </where>
     </select>
 
-    <!--    添加菜品-->
+    <!--    添加菜品（stock为防超卖改造新增，null时数据库默认0）-->
     <insert id="insert" useGeneratedKeys="true" keyProperty="id">
         insert into dish (name, category_id, price, image, description, create_time, update_time, create_user,
-        update_user, status)
+        update_user, status, stock)
         values (#{name}, #{categoryId}, #{price}, #{image}, #{description}, #{createTime}, #{updateTime}, #{createUser},
-        #{updateUser}, #{status})
+        #{updateUser}, #{status}, #{stock})
     </insert>
 </mapper>
