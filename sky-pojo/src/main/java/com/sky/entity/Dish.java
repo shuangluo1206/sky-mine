@@ -39,6 +39,11 @@ public class Dish implements Serializable {
     //0 停售 1 起售
     private Integer status;
 
+    /**
+     * 库存（防超卖改造新增，dish表stock字段）
+     */
+    private Integer stock;
+
     private LocalDateTime createTime;
 
     private LocalDateTime updateTime;

@@ -77,4 +77,12 @@ public interface DishMapper {
      * @return
      */
     Integer countByMap(Map map);
+
+    /**
+     * 扣减菜品库存（防超卖改造新增）
+     * @param dishId 菜品id
+     * @param num 扣减数量
+     * @return 影响行数（0表示库存不足未扣减）
+     */
+    int deductStock(@Param("dishId") Long dishId, @Param("num") Integer num);
 }

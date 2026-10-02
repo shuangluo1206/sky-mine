@@ -23,6 +23,11 @@
         from dish
         where id=#{id};
     </delete>
+
+    <!--    扣减菜品库存（防超卖改造新增）：并发安全由外层 Redis 分布式锁保证 -->
+    <update id="deductStock">
+        update dish set stock = stock - #{num} where id = #{dishId}
+    </update>
     <!--    根据分类id查询菜品数量-->
     <select id="countByCategoryId" resultType="java.lang.Integer">
         select count(id)

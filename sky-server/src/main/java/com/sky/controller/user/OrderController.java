@@ -2,6 +2,8 @@ package com.sky.controller.user;
 
 import com.sky.dto.OrdersPaymentDTO;
 import com.sky.dto.OrdersSubmitDTO;
+import com.sky.exception.OrderBusinessException;
+import com.sky.lock.SimpleRedisLock;
 import com.sky.result.PageResult;
 import com.sky.result.Result;
 import com.sky.service.OrderService;
@@ -25,9 +27,15 @@ public class OrderController {
 
     @Autowired
     private OrderService orderService;
+    @Autowired
+    private SimpleRedisLock simpleRedisLock;
 
     /**
      * 用户下单
+     *
+     * 防超卖③：分布式锁包住整个 submitOrder 事务（含提交）。
+     * 不能把锁放进 Service：@Transactional 在 Service 方法返回后才提交，
+     * 锁内释放会出现"锁已放、事务未提交"，别人读到旧库存，超卖复发。
      *
      * @param ordersSubmitDTO
      * @return
@@ -36,8 +44,16 @@ public class OrderController {
     @Operation(summary = "用户下单")
     public Result<OrderSubmitVO> submit(@RequestBody OrdersSubmitDTO ordersSubmitDTO) throws Exception {
         log.info("用户下单：{}", ordersSubmitDTO);
-        OrderSubmitVO orderSubmitVO = orderService.submitOrder(ordersSubmitDTO);
-        return Result.success(orderSubmitVO);
+        //自旋排队：最多等 100 次 × 100ms = 10s，等不到才拒绝
+        if (!simpleRedisLock.tryLock("order:submit", 100, 100)) {
+            throw new OrderBusinessException("当前下单人数过多，请稍后重试");
+        }
+        try {
+            OrderSubmitVO orderSubmitVO = orderService.submitOrder(ordersSubmitDTO);
+            return Result.success(orderSubmitVO);
+        } finally {
+            simpleRedisLock.unlock("order:submit");
+        }
     }
 
     /**

@@ -15,6 +15,7 @@ import com.sky.entity.*;
 import com.sky.exception.AddressBookBusinessException;
 import com.sky.exception.OrderBusinessException;
 import com.sky.exception.ShoppingCartBusinessException;
+import com.sky.exception.StockNotEnoughException;
 import com.sky.mapper.*;
 import com.sky.result.PageResult;
 import com.sky.service.OrderService;
@@ -70,6 +71,8 @@ public class OrderServiceImpl implements OrderService {
     @Autowired
     private AddressBookMapper addressBookMapper;
     @Autowired
+    private DishMapper dishMapper;
+    @Autowired
     private WeChatPayUtil weChatPayUtil;
 
     /**
@@ -103,6 +106,19 @@ public class OrderServiceImpl implements OrderService {
             throw new ShoppingCartBusinessException(MessageConstant.SHOPPING_CART_IS_NULL);
         }
 
+        //校验菜品库存：先查后判的朴素写法
+        //防超卖③已修复：外层 Controller 已用 Redis 分布式锁串行化整个事务，
+        //此处的并发窗口仅在锁保护下执行；单独调用（如其他入口）需自带上限保护
+        for (ShoppingCart cart : shoppingCartList) {
+            if (cart.getDishId() == null) {
+                continue; //套餐明细本轮不做库存（范围只做dish）
+            }
+            Dish dish = dishMapper.getById(cart.getDishId());
+            if (dish == null || dish.getStock() < cart.getNumber()) {
+                throw new StockNotEnoughException(MessageConstant.DISH_STOCK_NOT_ENOUGH);
+            }
+        }
+
         //构造订单数据
         Orders order = new Orders();
         BeanUtils.copyProperties(ordersSubmitDTO,order);
@@ -129,6 +145,13 @@ public class OrderServiceImpl implements OrderService {
 
         //向明细表插入n条数据
         orderDetailMapper.insertBatch(orderDetailList);
+
+        //扣减菜品库存（防超卖改造：朴素实现，与上面的校验之间存在并发窗口）
+        for (ShoppingCart cart : shoppingCartList) {
+            if (cart.getDishId() != null) {
+                dishMapper.deductStock(cart.getDishId(), cart.getNumber());
+            }
+        }
 
         //清理购物车中的数据
         shoppingCartMapper.deleteByUserId(userId);
